@@ -1,0 +1,33 @@
+#!/bin/sh
+# Installer postinstall (runs as root after the payload is copied).
+#  1. fix ownership/permissions CUPS insists on for filters
+#  2. restart cupsd so it sees the new filter + PPD
+#  3. upgrade existing TM-T20III queues to the new PPD, keeping their settings
+#  4. first install: add a queue if a TM-T20 is connected over USB
+DIR=/Library/Printers/Epson/TMT20III
+PPD=/Library/Printers/PPDs/Contents/Resources/EpsonTMT20III.ppd
+
+chown -R root:wheel "$DIR" "$PPD"
+chmod 755 "$DIR" "$DIR/rastertotmt20" "$DIR/add-printer.sh" "$DIR/uninstall.sh"
+chmod 644 "$PPD"
+
+launchctl kickstart -k system/org.cups.cupsd 2>/dev/null || killall -HUP cupsd 2>/dev/null || true
+i=0
+while [ $i -lt 20 ] && ! lpstat -r >/dev/null 2>&1; do sleep 0.5; i=$((i + 1)); done
+
+found=0
+for q in $(lpstat -e 2>/dev/null); do
+    qppd="/private/etc/cups/ppd/$q.ppd"
+    [ -f "$qppd" ] && grep -q rastertotmt20 "$qppd" || continue
+    found=1
+    if /usr/local/bin/tmqueue set "$q"; then
+        echo "postinstall: upgraded queue $q (settings kept)"
+    else
+        lpadmin -p "$q" -P "$PPD" && echo "postinstall: queue $q reset to the new PPD"
+    fi
+done
+
+if [ $found = 0 ]; then
+    "$DIR/add-printer.sh" TM_T20III || echo "postinstall: no TM-T20 on USB yet; run $DIR/add-printer.sh later"
+fi
+exit 0

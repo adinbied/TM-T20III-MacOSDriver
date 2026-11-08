@@ -1,0 +1,243 @@
+*PPD-Adobe: "4.3"
+*% Epson TM-T20III - open CUPS driver (rastertotmt20)
+*% Command set reverse-engineered from Epson APD6; see RE_NOTES.md.
+*% Option groups follow the Windows driver: Paper/Quality, Advanced,
+*% Feed and Cut, Peripherals.  Detail settings (per-timing feed/cut,
+*% peripherals, Send Command, margins, user defined paper) are written into
+*% the queue's copy of this file by TMUtility.app > Printing Preferences as
+*% "*TmSetting" / "*TmUserPaper" lines at the @@ markers below.
+*FormatVersion: "4.3"
+*FileVersion: "0.2.0"
+*LanguageVersion: English
+*LanguageEncoding: ISOLatin1
+*PCFileName: "TMT20III.PPD"
+*Manufacturer: "Epson"
+*Product: "(TM-T20III)"
+*ModelName: "Epson TM-T20III"
+*ShortNickName: "Epson TM-T20III"
+*NickName: "Epson TM-T20III (rastertotmt20)"
+*1284DeviceID: "MFG:EPSON;MDL:TM-T20III;"
+*PSVersion: "(3010.000) 0"
+*LanguageLevel: "3"
+*ColorDevice: False
+*DefaultColorSpace: Gray
+*FileSystem: False
+*Throughput: "1"
+*LandscapeOrientation: Plus90
+*TTRasterizer: Type42
+*cupsVersion: 2.2
+*cupsManualCopies: True
+*cupsFilter: "application/vnd.cups-raster 0 /Library/Printers/Epson/TMT20III/rastertotmt20"
+
+*% ------------------------------------------------------------ Paper
+*% Names and sizes from the Windows GPD (EA6MDLTMT203.GPD / EA6RESTM.DLL).
+*% 80 mm roll: 576-dot head from x = 10.80 pt; 58 mm roll: 420 dots from 7.09 pt.
+*% Office sizes print reduced ("Unsupported Paper: Automatically adjust").
+*OpenUI *PageSize/Paper Size: PickOne
+*OrderDependency: 20 AnySetup *PageSize
+*DefaultPageSize: RP80x297
+*PageSize Letter/LT 8.5 x 11 in: "<</PageSize[612 792]/ImagingBBox null>>setpagedevice"
+*PageSize A4/A4 210 x 297 mm: "<</PageSize[595.28 841.89]/ImagingBBox null>>setpagedevice"
+*PageSize Postcard/Postcard 100 x 148 mm: "<</PageSize[283.46 419.53]/ImagingBBox null>>setpagedevice"
+*PageSize RP58x297/Roll Paper 58 x 297 mm: "<</PageSize[164.41 841.89]/ImagingBBox null>>setpagedevice"
+*PageSize RP58x3276/Roll Paper 58 x 3276 mm: "<</PageSize[164.41 9286.30]/ImagingBBox null>>setpagedevice"
+*PageSize RP80x297/Roll Paper 80 x 297 mm: "<</PageSize[226.77 841.89]/ImagingBBox null>>setpagedevice"
+*PageSize RP80x3276/Roll Paper 80 x 3276 mm: "<</PageSize[226.77 9286.30]/ImagingBBox null>>setpagedevice"
+*PageSize TrussTape/TRUSS TAPE 3.18 x 12 in: "<</PageSize[228.96 864]/ImagingBBox null>>setpagedevice"
+*%@@UDP PageSize
+*CloseUI: *PageSize
+
+*OpenUI *PageRegion: PickOne
+*OrderDependency: 20 AnySetup *PageRegion
+*DefaultPageRegion: RP80x297
+*PageRegion Letter/LT 8.5 x 11 in: "<</PageSize[612 792]/ImagingBBox null>>setpagedevice"
+*PageRegion A4/A4 210 x 297 mm: "<</PageSize[595.28 841.89]/ImagingBBox null>>setpagedevice"
+*PageRegion Postcard/Postcard 100 x 148 mm: "<</PageSize[283.46 419.53]/ImagingBBox null>>setpagedevice"
+*PageRegion RP58x297/Roll Paper 58 x 297 mm: "<</PageSize[164.41 841.89]/ImagingBBox null>>setpagedevice"
+*PageRegion RP58x3276/Roll Paper 58 x 3276 mm: "<</PageSize[164.41 9286.30]/ImagingBBox null>>setpagedevice"
+*PageRegion RP80x297/Roll Paper 80 x 297 mm: "<</PageSize[226.77 841.89]/ImagingBBox null>>setpagedevice"
+*PageRegion RP80x3276/Roll Paper 80 x 3276 mm: "<</PageSize[226.77 9286.30]/ImagingBBox null>>setpagedevice"
+*PageRegion TrussTape/TRUSS TAPE 3.18 x 12 in: "<</PageSize[228.96 864]/ImagingBBox null>>setpagedevice"
+*%@@UDP PageRegion
+*CloseUI: *PageRegion
+
+*DefaultImageableArea: RP80x297
+*ImageableArea Letter/LT 8.5 x 11 in: "0 0 612 792"
+*ImageableArea A4/A4 210 x 297 mm: "0 0 595.28 841.89"
+*ImageableArea Postcard/Postcard 100 x 148 mm: "0 0 283.46 419.53"
+*ImageableArea RP58x297/Roll Paper 58 x 297 mm: "7.09 0 156.06 841.89"
+*ImageableArea RP58x3276/Roll Paper 58 x 3276 mm: "7.09 0 156.06 9286.30"
+*ImageableArea RP80x297/Roll Paper 80 x 297 mm: "10.80 0 215.13 841.89"
+*ImageableArea RP80x3276/Roll Paper 80 x 3276 mm: "10.80 0 215.13 9286.30"
+*ImageableArea TrussTape/TRUSS TAPE 3.18 x 12 in: "0 0 228.96 864"
+*%@@UDP ImageableArea
+
+*DefaultPaperDimension: RP80x297
+*PaperDimension Letter/LT 8.5 x 11 in: "612 792"
+*PaperDimension A4/A4 210 x 297 mm: "595.28 841.89"
+*PaperDimension Postcard/Postcard 100 x 148 mm: "283.46 419.53"
+*PaperDimension RP58x297/Roll Paper 58 x 297 mm: "164.41 841.89"
+*PaperDimension RP58x3276/Roll Paper 58 x 3276 mm: "164.41 9286.30"
+*PaperDimension RP80x297/Roll Paper 80 x 297 mm: "226.77 841.89"
+*PaperDimension RP80x3276/Roll Paper 80 x 3276 mm: "226.77 9286.30"
+*PaperDimension TrussTape/TRUSS TAPE 3.18 x 12 in: "228.96 864"
+*%@@UDP PaperDimension
+
+*% User defined size (GPD CUSTOMSIZE: MinLeftMargin 0, origin at the page edge).
+*VariablePaperSize: True
+*MaxMediaWidth: "595.28"
+*MaxMediaHeight: "9286.30"
+*HWMargins: 0 0 0 0
+*CustomPageSize True: "pop pop pop <</PageSize[5 -2 roll]/ImagingBBox null>>setpagedevice"
+*ParamCustomPageSize Width: 1 points 149.10 595.28
+*ParamCustomPageSize Height: 2 points 72 9286.30
+*ParamCustomPageSize WidthOffset: 3 points 0 0
+*ParamCustomPageSize HeightOffset: 4 points 0 0
+*ParamCustomPageSize Orientation: 5 int 0 0
+
+*% --------------------------------------------------- Paper/Quality
+*OpenGroup: PaperQuality/Paper/Quality
+
+*% "Paper Source" in the Windows driver = Epson paper conservation: blank
+*% space at the top/bottom of each page is not fed.  Windows default: Bottom.
+*% Here the default is None so tapes and labels come out at their exact length.
+*OpenUI *TmPaperSource/Paper Source: PickOne
+*OrderDependency: 30 AnySetup *TmPaperSource
+*DefaultTmPaperSource: None
+*TmPaperSource None/None: ""
+*TmPaperSource Top/Top: ""
+*TmPaperSource Bottom/Bottom: ""
+*TmPaperSource Both/Top & Bottom: ""
+*CloseUI: *TmPaperSource
+
+*OpenUI *ColorModel/Color: PickOne
+*OrderDependency: 10 AnySetup *ColorModel
+*DefaultColorModel: Mono
+*ColorModel Mono/Monochrome: "<</cupsColorSpace 3/cupsBitsPerColor 1/cupsColorOrder 0>>setpagedevice"
+*ColorModel Gray/Grayscale: "<</cupsColorSpace 3/cupsBitsPerColor 8/cupsColorOrder 0>>setpagedevice"
+*CloseUI: *ColorModel
+
+*CloseGroup: PaperQuality
+
+*% -------------------------------------------------------- Advanced
+*OpenGroup: Advanced/Advanced
+
+*OpenUI *Resolution/Print Quality: PickOne
+*OrderDependency: 10 AnySetup *Resolution
+*DefaultResolution: 203dpi
+*Resolution 203dpi/203 x 203 dots per inch: "<</HWResolution[203 203]>>setpagedevice"
+*CloseUI: *Resolution
+
+*OpenUI *TmHalftone/Halftoning: PickOne
+*OrderDependency: 30 AnySetup *TmHalftone
+*DefaultTmHalftone: Dither8x8
+*TmHalftone Dither8x8/Dither 8x8: ""
+*CloseUI: *TmHalftone
+
+*OpenUI *TmPaperWidth/Roll paper width: PickOne
+*OrderDependency: 30 AnySetup *TmPaperWidth
+*DefaultTmPaperWidth: 80mm
+*TmPaperWidth 80mm/80 mm: ""
+*TmPaperWidth 58mm/58 mm: ""
+*CloseUI: *TmPaperWidth
+
+*OpenUI *TmScaling/Reduced size print: PickOne
+*OrderDependency: 30 AnySetup *TmScaling
+*DefaultTmScaling: 100
+*TmScaling 100/100%: ""
+*TmScaling 70/70%: ""
+*CloseUI: *TmScaling
+
+*OpenUI *TmUpsideDown/Upside-down: PickOne
+*OrderDependency: 30 AnySetup *TmUpsideDown
+*DefaultTmUpsideDown: False
+*TmUpsideDown False/Disabled: ""
+*TmUpsideDown True/Enabled: ""
+*CloseUI: *TmUpsideDown
+
+*CloseGroup: Advanced
+
+*% ------------------------------------------------------- Feed and Cut
+*OpenGroup: FeedCut/Feed and Cut
+
+*OpenUI *TmFeedCut/Preset option: PickOne
+*OrderDependency: 30 AnySetup *TmFeedCut
+*DefaultTmFeedCut: DocFeedCut
+*TmFeedCut DocFeedCut/Document[Feed, Cut]: ""
+*TmFeedCut DocFeedNoCut/Document[Feed, No cut]: ""
+*TmFeedCut DocNoFeedCut/Document[No feed, Cut]: ""
+*TmFeedCut DocNoFeedNoCut/Document[No feed, No cut]: ""
+*TmFeedCut PageFeedCut/Page[Feed, Cut]: ""
+*TmFeedCut PageFeedNoCut/Page[Feed, No cut]: ""
+*TmFeedCut PageNoFeedCut/Page[No feed, Cut]: ""
+*TmFeedCut Detail/Custom: ""
+*CloseUI: *TmFeedCut
+
+*CloseGroup: FeedCut
+
+*% ------------------------------------------------------ Peripherals
+*OpenGroup: Peripherals/Peripherals
+
+*OpenUI *TmPeripherals/Cash drawer and buzzer: PickOne
+*OrderDependency: 30 AnySetup *TmPeripherals
+*DefaultTmPeripherals: Default
+*TmPeripherals Default/As set in Printing Preferences: ""
+*TmPeripherals None/Nothing: ""
+*CloseUI: *TmPeripherals
+
+*CloseGroup: Peripherals
+
+*% ------------------------------------- macOS additions (not on Windows)
+*OpenGroup: MacOS/Calibration (macOS)
+
+*OpenUI *TmLengthScale/Length calibration: PickOne
+*OrderDependency: 30 AnySetup *TmLengthScale
+*DefaultTmLengthScale: 1.000
+*TmLengthScale 0.990/-1.0 %: ""
+*TmLengthScale 0.995/-0.5 %: ""
+*TmLengthScale 1.000/None: ""
+*TmLengthScale 1.005/+0.5 %: ""
+*TmLengthScale 1.010/+1.0 %: ""
+*TmLengthScale 1.015/+1.5 %: ""
+*TmLengthScale 1.020/+2.0 %: ""
+*CloseUI: *TmLengthScale
+*CustomTmLengthScale True/Custom: ""
+*ParamCustomTmLengthScale Scale/Scale factor: 1 real 0.9 1.1
+
+*OpenUI *TmBlankFeed/Blank space output: PickOne
+*OrderDependency: 30 AnySetup *TmBlankFeed
+*DefaultTmBlankFeed: Feed
+*TmBlankFeed Feed/Paper feed (ESC J, like Epson driver): ""
+*TmBlankFeed Raster/Blank raster (exact, slower): ""
+*CloseUI: *TmBlankFeed
+
+*OpenUI *TmCompress/Compress graphics: Boolean
+*OrderDependency: 30 AnySetup *TmCompress
+*DefaultTmCompress: True
+*TmCompress True/Yes: ""
+*TmCompress False/No: ""
+*CloseUI: *TmCompress
+
+*OpenUI *TmPrintControl/Print control mode (experimental): PickOne
+*OrderDependency: 30 AnySetup *TmPrintControl
+*DefaultTmPrintControl: Default
+*TmPrintControl Default/Printer setting: ""
+*TmPrintControl Mode1/Mode 1: ""
+*TmPrintControl Mode2/Mode 2: ""
+*TmPrintControl Mode3/Mode 3: ""
+*CloseUI: *TmPrintControl
+
+*CloseGroup: MacOS
+
+*% ---------------------------------------- Printing Preferences settings
+*% Written by TMUtility.app; read by rastertotmt20 (job -o options win).
+*%@@TMSETTINGS
+*%@@TMUSERPAPER
+
+*DefaultFont: Courier
+*Font Courier: Standard "(002.004S)" Standard ROM
+*Font Courier-Bold: Standard "(002.004S)" Standard ROM
+*Font Helvetica: Standard "(001.006S)" Standard ROM
+*Font Helvetica-Bold: Standard "(001.007S)" Standard ROM
+*Font Times-Roman: Standard "(001.007S)" Standard ROM
+*Font Times-Bold: Standard "(001.007S)" Standard ROM

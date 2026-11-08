@@ -1,0 +1,15 @@
+# build output
+build/
+.build/
+.swiftpm/
+dist/
+*.app
+*.pkg
+*.o
+__pycache__/
+*.pyc
+# macOS / editors
+.DS_Store
+*.xcodeproj/xcuserdata/
+.vscode/
+
