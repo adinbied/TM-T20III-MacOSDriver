@@ -1,16 +1,18 @@
 <img src="utility/Resources/AppIcon.png" width="128" align="right" alt="TM-T20III Utility icon">
 
-# Epson TM-T20III driver for macOS (Apple Silicon / Intel)
+# Epson TM-T20III driver and utility for macOS (Apple Silicon / Intel)
 
 Open CUPS raster driver and settings utility rebuilt from Epson's end-of-life Windows APD6
 driver and TM-T20III Utility. Prints anything macOS can print (PDF, browsers, truss tapes) on 80 mm or
 58 mm roll paper. Not made or supported by Epson.
 
+
 ## Prebuilt install
 
 1. Download **`TM-T20III-Driver-<version>.pkg`** from the [latest release](../../releases/latest).
    It is signed with a Developer ID and notarized by Apple, so it opens without Gatekeeper warnings.
-2. Connect the printer over USB and switch it on.
+2. Connect the printer over USB and switch it on. <img width="640" height="386" align="right" alt="Screenshot 2026-11-07 at 5 19 12 PM" src="https://github.com/user-attachments/assets/474bd73e-488c-4243-8eb4-12fd05742dd0" />
+
 3. Double-click the `.pkg` and follow the installer. It installs:
    - the driver: `/Library/Printers/Epson/TMT20III/rastertotmt20` and the PPD
    - **TM-T20III Utility** in Applications
@@ -22,6 +24,7 @@ driver and TM-T20III Utility. Prints anything macOS can print (PDF, browsers, tr
    /Library/Printers/Epson/TMT20III/add-printer.sh
    /Library/Printers/Epson/TMT20III/add-printer.sh TM_T20III socket://192.168.1.50:9100
    ```
+
 
 Optionally check the download against the `.sha256` file on the release:
 `shasum -a 256 -c TM-T20III-Driver-<version>.pkg.sha256`.
