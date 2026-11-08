@@ -142,14 +142,14 @@ with `-o`). `<t>` is `docbegin`, `pagebegin`, `pageend` or `docend`:
 
 Example: `lp -d TM_T20III -o PageSize=TrussTape -o TmLengthScale=1.005 tape.pdf`
 
-## Truss tapes (Paperwork.show)
+## Truss tapes
 
 1. Print with **TRUSS TAPE** (built in, or add it under APD Utility > User Defined Paper:
-   inch, 3.18 x 12.00, margins 0, exactly as Paperwork.show's Windows guide), Scale 100 %,
+   inch, 3.18 x 12.00, margins 0), Scale 100 %,
    headers/footers off.
 2. Paper Source = None (default) - every blank row is fed, so 12 in pages add up exactly.
 3. Feed and Cut = Document[Feed, Cut] (default).
-4. Leave Paperwork.show's own scale at **1.000** first and measure a 10 ft calibration tape. If it is
+4. Leave any sites own scale at **1.000** first and measure a 10 ft calibration tape. If it is
    still off, set Length calibration once in Printing Preferences > Layout > Advanced... instead of in
    the browser - then every app gets the correction.
 5. Printer-side settings (paper reduction off, speed, density): TM-T20III Utility > Printer > Load Preset >
