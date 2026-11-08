@@ -3,8 +3,7 @@
 # Epson TM-T20III driver for macOS (Apple Silicon / Intel)
 
 Open CUPS raster driver and settings utility rebuilt from Epson's end-of-life Windows APD6
-driver and TM-T20III Utility (see [RE_NOTES.md](RE_NOTES.md) for where every byte comes from).
-Prints anything macOS can print (PDF, browsers, Paperwork.show truss tapes) on 80 mm or
+driver and TM-T20III Utility. Prints anything macOS can print (PDF, browsers, truss tapes) on 80 mm or
 58 mm roll paper. Not made or supported by Epson.
 
 ## Prebuilt install
