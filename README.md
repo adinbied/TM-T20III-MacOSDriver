@@ -1,19 +1,17 @@
 <img src="utility/Resources/AppIcon.png" width="128" align="right" alt="TM-T20III Utility icon">
 
-# Epson TM-T20III driver and utility for macOS (Apple Silicon / Intel)
+# Epson TM-T20III driver for macOS (Apple Silicon / Intel)
 
 Open CUPS raster driver and settings utility rebuilt from Epson's end-of-life Windows APD6
 driver and TM-T20III Utility (see [RE_NOTES.md](RE_NOTES.md) for where every byte comes from).
 Prints anything macOS can print (PDF, browsers, Paperwork.show truss tapes) on 80 mm or
 58 mm roll paper. Not made or supported by Epson.
 
-
 ## Prebuilt install
 
 1. Download **`TM-T20III-Driver-<version>.pkg`** from the [latest release](../../releases/latest).
    It is signed with a Developer ID and notarized by Apple, so it opens without Gatekeeper warnings.
-2. Connect the printer over USB and switch it on. <img width="640" height="386" align="right" alt="Screenshot 2026-11-07 at 5 19 12 PM" src="https://github.com/user-attachments/assets/474bd73e-488c-4243-8eb4-12fd05742dd0" />
-
+2. Connect the printer over USB and switch it on.
 3. Double-click the `.pkg` and follow the installer. It installs:
    - the driver: `/Library/Printers/Epson/TMT20III/rastertotmt20` and the PPD
    - **TM-T20III Utility** in Applications
@@ -25,7 +23,6 @@ Prints anything macOS can print (PDF, browsers, Paperwork.show truss tapes) on 8
    /Library/Printers/Epson/TMT20III/add-printer.sh
    /Library/Printers/Epson/TMT20III/add-printer.sh TM_T20III socket://192.168.1.50:9100
    ```
-
 
 Optionally check the download against the `.sha256` file on the release:
 `shasum -a 256 -c TM-T20III-Driver-<version>.pkg.sha256`.
@@ -145,14 +142,14 @@ with `-o`). `<t>` is `docbegin`, `pagebegin`, `pageend` or `docend`:
 
 Example: `lp -d TM_T20III -o PageSize=TrussTape -o TmLengthScale=1.005 tape.pdf`
 
-## Truss tapes
+## Truss tapes (Paperwork.show)
 
 1. Print with **TRUSS TAPE** (built in, or add it under APD Utility > User Defined Paper:
-   inch, 3.18 x 12.00, margins 0), Scale 100 %,
+   inch, 3.18 x 12.00, margins 0, exactly as Paperwork.show's Windows guide), Scale 100 %,
    headers/footers off.
 2. Paper Source = None (default) - every blank row is fed, so 12 in pages add up exactly.
 3. Feed and Cut = Document[Feed, Cut] (default).
-4. Leave any sites own scale at **1.000** first and measure a 10 ft calibration tape. If it is
+4. Leave Paperwork.show's own scale at **1.000** first and measure a 10 ft calibration tape. If it is
    still off, set Length calibration once in Printing Preferences > Layout > Advanced... instead of in
    the browser - then every app gets the correction.
 5. Printer-side settings (paper reduction off, speed, density): TM-T20III Utility > Printer > Load Preset >
