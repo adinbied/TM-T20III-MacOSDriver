@@ -83,16 +83,18 @@ struct QueuePicker: View {
     @EnvironmentObject var q: QueueModel
 
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
+            IconTile(symbol: "printer.fill", color: .blue, size: 28)
             Picker("Printer:", selection: $q.queue) {
                 if q.queues.isEmpty { Text("No TM-T20III queue found").tag("") }
                 ForEach(q.queues, id: \.self) { Text($0).tag($0) }
             }
             .frame(maxWidth: 360)
-            Button("Refresh") { q.refreshQueues() }
+            Button { q.refreshQueues() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
             Spacer()
             if q.busy { ProgressView().controlSize(.small) }
         }
+        .cardSurface(padding: 10)
     }
 }
 
@@ -101,12 +103,20 @@ struct QueueStatusLine: View {
 
     var body: some View {
         if let e = q.lastError {
-            Label(e, systemImage: "exclamationmark.triangle").foregroundStyle(.red).lineLimit(2)
+            Label(e, systemImage: "exclamationmark.triangle.fill").foregroundColor(.red).lineLimit(2)
         } else if q.dirty {
-            Text("Settings have been changed.").foregroundStyle(.secondary)
+            Chip(icon: "pencil", text: "Settings have been changed.", color: .orange)
         } else if let m = q.message {
-            Text(m).foregroundStyle(.secondary)
+            Label(m, systemImage: "checkmark.circle.fill").foregroundColor(.secondary)
+                .symbolRenderingMode(.multicolor)
         }
+    }
+}
+
+extension View {
+    /// Tab content: scrolls when the window is short.
+    func prefsTab() -> some View {
+        ScrollView { self.padding(16).frame(maxWidth: .infinity, alignment: .topLeading) }
     }
 }
 
@@ -120,10 +130,10 @@ struct PrintingPreferencesView: View {
         VStack(alignment: .leading, spacing: 10) {
             QueuePicker()
             TabView(selection: $tab) {
-                LayoutTab().tabItem { Text("Layout") }.tag(0)
-                PaperQualityTab().tabItem { Text("Paper/Quality") }.tag(1)
-                FeedCutTab().tabItem { Text("Feed and Cut") }.tag(2)
-                PeripheralsTab().tabItem { Text("Peripherals") }.tag(3)
+                LayoutTab().prefsTab().tabItem { Text("Layout") }.tag(0)
+                PaperQualityTab().prefsTab().tabItem { Text("Paper/Quality") }.tag(1)
+                FeedCutTab().prefsTab().tabItem { Text("Feed and Cut") }.tag(2)
+                PeripheralsTab().prefsTab().tabItem { Text("Peripherals") }.tag(3)
                 VersionTab().tabItem { Text("Version") }.tag(4)
                 AdvancedSettingsTab().tabItem { Text("Advanced Settings") }.tag(5)
             }
@@ -131,14 +141,15 @@ struct PrintingPreferencesView: View {
                 QueueStatusLine()
                 Spacer()
                 Button("OK") { q.apply { closeKeyWindow() } }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
                 Button("Cancel") { q.revert(); closeKeyWindow() }
                     .keyboardShortcut(.cancelAction)
                 Button("Apply") { q.apply() }.disabled(!q.dirty || q.busy)
             }
         }
-        .padding(12)
-        .frame(minWidth: 640, minHeight: 640)
+        .padding(14)
+        .frame(minWidth: 680, minHeight: 700)
+        .opaqueWindow()
         .disabled(q.queue.isEmpty && !q.queues.isEmpty)
         .onAppear { if q.queues.isEmpty { q.refreshQueues() } }
     }
@@ -152,36 +163,31 @@ struct LayoutTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            GroupBox("Orientation") {
+            Card("Orientation", icon: "doc.fill", color: .blue) {
                 Picker("", selection: $q.orientation) {
-                    Label("Portrait", systemImage: "doc").tag("portrait")
-                    Label("Landscape", systemImage: "doc.richtext").tag("landscape")
+                    Text("Portrait").tag("portrait")
+                    Text("Landscape").tag("landscape")
                 }
                 .pickerStyle(.radioGroup).labelsHidden()
                 .onChange(of: q.orientation) { _ in q.dirty = true }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            GroupBox("Page Order") {
+            Card("Page Order", icon: "arrow.up.arrow.down", color: .purple) {
                 Picker("", selection: $q.pageOrder) {
                     Text("Front to Back").tag("normal")
                     Text("Back to Front").tag("reverse")
                 }
                 .pickerStyle(.radioGroup).labelsHidden()
                 .onChange(of: q.pageOrder) { _ in q.dirty = true }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            GroupBox("Page Format") {
+            Card("Page Format", icon: "square.grid.2x2.fill", color: .teal) {
                 Picker("Pages per Sheet", selection: $q.numberUp) {
                     ForEach([1, 2, 4, 6, 9, 16], id: \.self) { Text("\($0)").tag($0) }
                 }
                 .frame(width: 220)
                 .onChange(of: q.numberUp) { _ in q.dirty = true }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer()
             HStack { Spacer(); Button("Advanced...") { advanced = true } }
         }
-        .padding()
         .sheet(isPresented: $advanced) { AdvancedOptionsSheet() }
     }
 }
@@ -247,7 +253,7 @@ struct PaperQualityTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            GroupBox("Tray Selection") {
+            Card("Tray Selection", icon: "tray.fill", color: .orange) {
                 VStack(alignment: .leading, spacing: 6) {
                     PPDPicker(key: "TmPaperSource", title: "Paper Source:",
                               choices: [("None", "None"), ("Top", "Top"), ("Bottom", "Bottom"), ("Both", "Top & Bottom")])
@@ -257,20 +263,16 @@ struct PaperQualityTab: View {
                          + "multi-page tapes and labels keep their exact length.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            GroupBox("Color") {
+            Card("Color", icon: "paintpalette.fill", color: .pink) {
                 Picker("", selection: Binding(get: { q.get("ColorModel") }, set: { _ = q.set("ColorModel", $0) })) {
                     Text("Monochrome").tag("Mono")
                     Text("Grayscale").tag("Gray")
                 }
                 .pickerStyle(.radioGroup).labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer()
             HStack { Spacer(); Button("Advanced...") { advanced = true } }
         }
-        .padding()
         .sheet(isPresented: $advanced) { AdvancedOptionsSheet() }
     }
 }
@@ -284,37 +286,30 @@ struct FeedCutTab: View {
     private var presetKey: String { q.get("TmFeedCut") }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Preset option:")
+        VStack(alignment: .leading, spacing: 14) {
+            Card("Preset option", icon: "scissors", color: .orange) {
+                HStack(alignment: .top, spacing: 16) {
                     List(FeedCutPreset.all, selection: Binding<String?>(
                         get: { presetKey }, set: { if let k = $0 { select(k) } })) { p in
                         Text(p.title).tag(p.key)
                     }
                     .listStyle(.bordered(alternatesRowBackgrounds: false))
                     .frame(width: 280, height: 170)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Illustration:")
-                    FeedCutIllustration(modes: Timing.allCases.map { q.int("tm-cut-\($0.key)") })
-                        .frame(width: 220, height: 170)
-                }
-            }
-            Text("Detail option:")
-            TabView(selection: $detail) {
-                ForEach(Timing.allCases) { t in
-                    CutDetailView(timing: t).tabItem { Text(t.title) }.tag(t)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Illustration").font(.caption).foregroundColor(.secondary)
+                        FeedCutIllustration(modes: Timing.allCases.map { q.int("tm-cut-\($0.key)") })
+                            .frame(width: 220, height: 150)
+                    }
                 }
             }
-            .frame(height: 230)
-            GroupBox("Eject direction") {
+            Card("Detail option", icon: "slider.horizontal.3", color: .indigo) {
+                TimingTabs(selection: $detail) { t in CutDetailView(timing: t) }
+            }
+            Card("Eject direction", icon: "arrow.down.to.line", color: .gray) {
                 Picker("", selection: .constant(0)) { Text("Feed direction").tag(0) }
                     .labelsHidden().frame(width: 220).disabled(true)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
-        .padding()
     }
 
     private func select(_ key: String) {
@@ -335,16 +330,21 @@ struct FeedCutIllustration: View {
         let pageFeed = modes[2] & 16 != 0, docFeed = modes[3] & 16 != 0
         VStack(spacing: 4) {
             ForEach(0..<2) { i in
-                RoundedRectangle(cornerRadius: 2).stroke(.secondary)
-                    .overlay(Text("Page \(i + 1)").font(.caption2).foregroundStyle(.secondary))
-                    .frame(width: 90, height: 44)
+                RoundedRectangle(cornerRadius: 3).fill(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.gray.opacity(0.4)))
+                    .overlay(VStack(spacing: 3) {
+                        Text("Page \(i + 1)").font(.caption2.weight(.medium)).foregroundColor(.gray)
+                        ForEach(0..<2) { _ in Capsule().fill(Color.gray.opacity(0.35)).frame(width: 56, height: 3) }
+                    })
+                    .shadow(color: .black.opacity(0.12), radius: 1.5, y: 1)
+                    .frame(width: 90, height: 40)
                 if i == 0 { marker(cut: pageCut, feed: pageFeed) }
             }
             marker(cut: docCut, feed: docFeed)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 4).fill(Color(nsColor: .textBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(.separator))
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.orange.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.orange.opacity(0.25)))
     }
 
     @ViewBuilder private func marker(cut: Bool, feed: Bool) -> some View {
@@ -357,8 +357,29 @@ struct FeedCutIllustration: View {
                 Rectangle().frame(width: 70, height: 1).opacity(0.15)
             }
         }
-        .foregroundColor(cut ? Color.red : Color.secondary)
+        .foregroundColor(cut ? Color.red : feed ? Color.blue : Color.secondary)
         .frame(height: 12)
+    }
+}
+
+/// The Windows per-timing tab strip (Start of Document ... End of Document).
+/// A segmented control instead of a nested TabView: a TabView inside the
+/// window's TabView does not draw its tab strip on current macOS.
+struct TimingTabs<Content: View>: View {
+    @Binding var selection: Timing
+    @ViewBuilder let content: (Timing) -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Picker("", selection: $selection) {
+                ForEach(Timing.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            .frame(maxWidth: .infinity)
+            content(selection)
+                .id(selection)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
 }
 
@@ -376,7 +397,8 @@ struct CutDetailView: View {
     }
 
     var body: some View {
-        GroupBox("Paper Cut") {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Paper Cut", systemImage: "scissors").font(.subheadline.weight(.semibold)).foregroundColor(.orange)
             VStack(alignment: .leading, spacing: 8) {
                 Toggle("Feed to cut position before cutting", isOn: Binding(
                     get: { mode & 16 != 0 }, set: { setMode(($0 ? 16 : 0) | (mode & 1)) }))
@@ -413,10 +435,10 @@ struct CutDetailView: View {
                     set: { q.set("tm-startpos-\(timing.key)", $0 ? 1 : 0) }))
                 Toggle("Eject single-cut sheets", isOn: .constant(false)).disabled(true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(6)
+            .padding(.leading, 4)
         }
-        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 6)
     }
 }
 
@@ -432,8 +454,8 @@ struct PeripheralsTab: View {
     private var modes: [Int] { Timing.allCases.map { q.int("tm-dk-\($0.key)") } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            GroupBox("Peripherals") {
+        VStack(alignment: .leading, spacing: 14) {
+            Card("Peripherals", icon: "cable.connector.horizontal", color: .green) {
                 VStack(alignment: .leading) {
                     Picker("", selection: Binding(get: { device }, set: { new in
                         if new != device {
@@ -443,36 +465,32 @@ struct PeripheralsTab: View {
                         ForEach(PeripheralDevice.allCases) { Text($0.title).tag($0) }
                     }
                     .labelsHidden().frame(width: 360)
-                    TabView(selection: $timing) {
-                        ForEach(Timing.allCases) { t in
-                            HStack(alignment: .top, spacing: 12) {
-                                if device.hasDrawer { DrawerPane(timing: t, device: device) }
-                                if device == .external { ExternalBuzzerPane(timing: t) } else if device.hasBuzzer {
-                                    BuiltInBuzzerPane(timing: t, device: device)
-                                }
-                                if device == .nothing {
-                                    Text("No peripheral is connected.").foregroundStyle(.secondary)
-                                }
-                                Spacer(minLength: 0)
+                    TimingTabs(selection: $timing) { t in
+                        HStack(alignment: .top, spacing: 12) {
+                            if device.hasDrawer { DrawerPane(timing: t, device: device) }
+                            if device == .external { ExternalBuzzerPane(timing: t) } else if device.hasBuzzer {
+                                BuiltInBuzzerPane(timing: t, device: device)
                             }
-                            .padding(8)
-                            .tabItem { Text(t.title) }.tag(t)
+                            if device == .nothing {
+                                Text("No peripheral is connected.").foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
                         }
+                        .padding(8)
                     }
-                    .frame(height: 280)
                 }
             }
-            Text("Current settings:")
-            Table(Timing.allCases) {
-                TableColumn("Timing") { Text($0.title) }
-                TableColumn("Settings") { t in
-                    let m = q.int("tm-dk-\(t.key)")
-                    Text(m >= 512 ? "\(peripheralLabel(m)) x\(q.int("tm-dk-count-\(t.key)"))" : peripheralLabel(m))
+            Card("Current settings", icon: "list.bullet.rectangle.fill", color: .blue) {
+                Table(Timing.allCases) {
+                    TableColumn("Timing") { Text($0.title) }
+                    TableColumn("Settings") { t in
+                        let m = q.int("tm-dk-\(t.key)")
+                        Text(m >= 512 ? "\(peripheralLabel(m)) x\(q.int("tm-dk-count-\(t.key)"))" : peripheralLabel(m))
+                    }
                 }
+                .frame(height: 130)
             }
-            .frame(height: 120)
         }
-        .padding()
         .onAppear { device = PeripheralDevice.from(modes: modes) ?? device }
         .onChange(of: q.queue) { _ in device = PeripheralDevice.from(modes: modes) ?? .nothing }
         .alert("Part of the current settings will be reset. Do you want to proceed?",
@@ -524,7 +542,7 @@ struct DrawerPane: View {
     }
 
     var body: some View {
-        GroupBox("Cash Drawer") {
+        Card("Cash Drawer", icon: "tray.fill", color: .mint, fill: false) {
             VStack(alignment: .leading, spacing: 8) {
                 GroupBox("Cash Drawer #1 (2 Pins)") {
                     Picker("", selection: Binding(get: { dk.drawer1 }, set: { v in
@@ -562,7 +580,7 @@ struct BuiltInBuzzerPane: View {
     private var dk: DK { DK(q.int("tm-dk-\(timing.key)")) }
 
     var body: some View {
-        GroupBox("Built-in Buzzer") {
+        Card("Built-in Buzzer", icon: "speaker.wave.2.fill", color: .red, fill: false) {
             VStack(alignment: .leading, spacing: 8) {
                 Picker("", selection: Binding(get: { dk.buzzer }, set: { v in
                     var d = dk
@@ -595,7 +613,7 @@ struct ExternalBuzzerPane: View {
     private var mode: Int { q.int("tm-dk-\(timing.key)") }
 
     var body: some View {
-        GroupBox("External Buzzer") {
+        Card("External Buzzer", icon: "bell.fill", color: .red, fill: false) {
             VStack(alignment: .leading, spacing: 8) {
                 Picker("", selection: Binding(get: { mode >= 512 }, set: {
                     q.set("tm-dk-\(timing.key)", $0 ? 512 : 0) })) {
@@ -626,7 +644,7 @@ struct ExternalBuzzerPane: View {
 struct VersionTab: View {
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: "printer").font(.system(size: 40))
+            IconTile(symbol: "printer.fill", color: .blue, size: 64)
             Text("TM-T20III driver for macOS (rastertotmt20)").font(.headline)
             Text("Rebuilt from the behaviour of EPSON Advanced Printer Driver 6")
             Text("Not affiliated with or supported by Seiko Epson Corporation.")
@@ -646,8 +664,7 @@ struct VersionTab: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
             }
-            .background(Color(nsColor: .textBackgroundColor))
-            .border(.separator)
+            .cardSurface(padding: 4)
         }
         .padding()
     }
@@ -658,8 +675,9 @@ struct AdvancedSettingsTab: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            Button("Advanced Settings") { openWindow(id: "apd") }
-                .controlSize(.large).frame(width: 260, height: 60)
+            IconTile(symbol: "gearshape.2.fill", color: .gray, size: 56)
+            Button { openWindow(id: "apd") } label: { Text("Advanced Settings").frame(width: 220) }
+                .buttonStyle(.borderedProminent).controlSize(.large)
             Text("Start up the APD Utility to access the Advanced Settings.")
                 .multilineTextAlignment(.center).frame(width: 300)
             Divider().frame(width: 300)
@@ -676,7 +694,13 @@ struct AdvancedSettingsTab: View {
 enum APDPage: String, CaseIterable, Identifiable {
     case layout = "Layout", paper = "User Defined Paper", command = "Send Command"
     var id: Self { self }
-    var icon: String { ["rectangle.dashed", "doc.badge.plus", "terminal"][APDPage.allCases.firstIndex(of: self)!] }
+    var icon: String { ["rectangle.dashed", "doc.badge.plus", "terminal.fill"][APDPage.allCases.firstIndex(of: self)!] }
+    var color: Color { [Color.blue, .green, .indigo][APDPage.allCases.firstIndex(of: self)!] }
+    var subtitle: String {
+        ["Print position, reduced size and unsupported paper.",
+         "Paper sizes added to the queue (e.g. truss tapes).",
+         "Raw bytes sent at the start and end of every job."][APDPage.allCases.firstIndex(of: self)!]
+    }
 }
 
 struct APDUtilityView: View {
@@ -686,24 +710,38 @@ struct APDUtilityView: View {
     var body: some View {
         NavigationSplitView {
             List(APDPage.allCases, selection: $page) { p in
-                Label(p.rawValue, systemImage: p.icon).tag(p)
+                TileLabel(title: p.rawValue, icon: p.icon, color: p.color).tag(p)
             }
-            .navigationSplitViewColumnWidth(190)
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210)
         } detail: {
-            VStack(alignment: .leading, spacing: 10) {
-                QueuePicker()
-                Divider()
-                switch page ?? .layout {
-                case .layout: LayoutPage()
-                case .paper: UserDefinedPaperPage()
-                case .command: SendCommandPage()
+            let current = page ?? .layout
+            VStack(alignment: .leading, spacing: 0) {
+                QueuePicker().padding([.horizontal, .top], 16).padding(.bottom, 10)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        PageHeader(title: current.rawValue, subtitle: current.subtitle,
+                                   icon: current.icon, color: current.color)
+                        switch current {
+                        case .layout: LayoutPage()
+                        case .paper: UserDefinedPaperPage()
+                        case .command: SendCommandPage()
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                Spacer(minLength: 0)
-                QueueStatusLine()
+                Divider()
+                HStack { QueueStatusLine(); Spacer() }
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .background(Theme.surface)
             }
-            .padding()
+            .background(Theme.window)
         }
-        .frame(minWidth: 780, minHeight: 560)
+        .opaqueWindow()
+        .frame(minWidth: 820, minHeight: 620)
         .onAppear { if q.queues.isEmpty { q.refreshQueues() } }
     }
 }
@@ -732,7 +770,7 @@ struct LayoutPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            GroupBox("Adjust Print Position") {
+            Card("Adjust Print Position", icon: "arrow.up.and.down.and.arrow.left.and.right", color: .blue) {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Top Margin", isOn: Binding(get: { q.int("tm-margin-top-enable") != 0 },
                                                        set: { q.set("tm-margin-top-enable", $0 ? 1 : 0) }))
@@ -743,22 +781,19 @@ struct LayoutPage: View {
                     HStack { MMField(value: um("tm-margin-left")); Text("[0-11]mm") }
                         .padding(.leading, 20).disabled(q.int("tm-margin-left-enable") == 0)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading).padding(6)
             }
-            GroupBox("Reduced Size Print") {
+            Card("Reduced Size Print", icon: "arrow.down.right.and.arrow.up.left", color: .teal) {
                 Picker("", selection: Binding(get: { q.int("tm-reduce-80-58") }, set: { q.set("tm-reduce-80-58", $0) })) {
                     Text("Do not reduce").tag(0)
                     Text("Reduce from 80 mm to 58 mm").tag(1)
                 }
                 .pickerStyle(.radioGroup).labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading).padding(6)
             }
-            GroupBox("Unsupported Paper") {
+            Card("Unsupported Paper", icon: "exclamationmark.triangle.fill", color: .orange) {
                 Toggle("Automatically adjust and print", isOn: Binding(
                     get: { q.int("tm-unsupported-auto") != 0 }, set: { q.set("tm-unsupported-auto", $0 ? 1 : 0) }))
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(6)
             }
-            HStack { Spacer(); Button("Set") { q.apply() }.disabled(!q.dirty || q.busy) }
+            HStack { Spacer(); APDSetButton { q.apply() }.disabled(!q.dirty || q.busy) }
         }
     }
 }
@@ -780,19 +815,19 @@ struct UserDefinedPaperPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Paper List") {
+            Card("Paper List", icon: "list.bullet", color: .blue) {
                 HStack(alignment: .top) {
                     List(q.papers, selection: $selected) { p in
                         Text(p.name).tag(p.keyword)
                     }
                     .listStyle(.bordered(alternatesRowBackgrounds: false))
                     .frame(height: 120)
-                    Button("Delete") {
+                    Button(role: .destructive) {
                         if let p = q.papers.first(where: { $0.keyword == selected }) {
                             q.deletePaper(p.name)
                             q.apply()
                         }
-                    }
+                    } label: { Label("Delete", systemImage: "trash") }
                     .disabled(selected == nil)
                 }
             }
@@ -802,13 +837,13 @@ struct UserDefinedPaperPage: View {
                 width = p.width; height = p.height
                 left = p.left; top = p.top; right = p.right; bottom = p.bottom
             }
-            GroupBox("Add User Defined Paper") {
+            Card("Add User Defined Paper", icon: "doc.badge.plus", color: .green) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Paper Name").frame(width: 80, alignment: .leading)
                         TextField("", text: $name).frame(width: 260)
                         Spacer()
-                        Button("Register") { register(confirmed: false) }.disabled(name.isEmpty || q.busy)
+                        Button { register(confirmed: false) } label: { Label("Register", systemImage: "plus.circle.fill") }.buttonStyle(.borderedProminent).tint(.green).disabled(name.isEmpty || q.busy)
                     }
                     HStack(alignment: .top) {
                         GroupBox("Paper Type") {
@@ -883,7 +918,7 @@ struct SendCommandPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Send Command") {
+            Card("Send Command", icon: "terminal.fill", color: .indigo) {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(order.indices, id: \.self) { i in
                         let t = order[i].0, title = order[i].1
@@ -903,7 +938,7 @@ struct SendCommandPage: View {
             HStack {
                 if let e = error { Label(e, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
                 Spacer()
-                Button("Set") { save() }.disabled(q.busy)
+                APDSetButton { save() }.disabled(q.busy)
             }
         }
         .onAppear(perform: reload)
@@ -930,5 +965,14 @@ struct SendCommandPage: View {
         }
         reload()
         q.apply()
+    }
+}
+
+/// APD pages' "Set" (writes the queue PPD).
+struct APDSetButton: View {
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) { Label("Set", systemImage: "square.and.arrow.down.fill").frame(minWidth: 60) }
+            .buttonStyle(.borderedProminent).controlSize(.large)
     }
 }

@@ -3,7 +3,8 @@
 # Epson TM-T20III driver and utility for macOS (Apple Silicon / Intel)
 
 Open CUPS raster driver and settings utility rebuilt from Epson's end-of-life Windows APD6
-driver and TM-T20III Utility. Prints anything macOS can print (PDF, browsers, truss tapes) on 80 mm or
+driver and TM-T20III Utility (see [RE_NOTES.md](RE_NOTES.md) for where every byte comes from).
+Prints anything macOS can print (PDF, browsers, Paperwork.show truss tapes) on 80 mm or
 58 mm roll paper. Not made or supported by Epson.
 
 
@@ -65,9 +66,11 @@ notarizes and staples it, and writes `dist/TM-T20III-Driver-<VERSION>.pkg` plus 
 
 One-time setup on the Mac that builds releases:
 
-1. In Xcode > Settings > Accounts > your team > **Manage Certificates**, add a
-   **Developer ID Application** and a **Developer ID Installer** certificate (or create them at
-   developer.apple.com and import them). Check with `security find-identity -v`.
+1. In Xcode > Settings > Accounts > your team > **Manage Certificates**, click **+** and add a
+   **Developer ID Application** and a **Developer ID Installer** certificate. Only the team's
+   **Account Holder** can create these. *Apple Distribution* / *Apple Development* certificates
+   are for the App Store and testing and cannot sign a downloadable installer; the script ignores
+   them. Check with `security find-identity -v`: both `Developer ID ...` lines must be listed.
 2. Create an app-specific password at account.apple.com, then store notarization credentials:
 
    ```sh
@@ -77,7 +80,7 @@ One-time setup on the Mac that builds releases:
 Release steps:
 
 ```sh
-echo 0.2.1 > VERSION                  # also bump *FileVersion in ppd/EpsonTMT20III.ppd
+echo 0.2.1 > VERSION                  # the installer stamps it into the app and the PPD
 ./scripts/make-installer.sh           # -> dist/TM-T20III-Driver-0.2.1.pkg (+ .sha256)
 ./scripts/make-installer.sh --release # same, then uploads it to GitHub release v0.2.1 (needs gh)
 ```
@@ -90,7 +93,7 @@ hand; the Prebuilt install link above always points at the latest one.
 | `--unsigned` | ad-hoc binaries, unsigned pkg, no notarization (local testing) |
 | `--no-notarize` | signed but not notarized |
 | `--skip-tests` | skip the test suites |
-| `DEV_ID_APP`, `DEV_ID_INSTALLER` | certificate names, if more than one is in the keychain |
+| `DEV_ID_APP`, `DEV_ID_INSTALLER` | pick one Developer ID certificate when several are installed (name, team ID or SHA-1); auto-detected otherwise |
 | `NOTARY_PROFILE` | notarytool profile name (default `tmt20iii-notary`) |
 | `ID_PREFIX` | bundle / package identifier prefix (default `local.tmt20iii`, e.g. set `com.yourcompany.tmt20iii`) |
 

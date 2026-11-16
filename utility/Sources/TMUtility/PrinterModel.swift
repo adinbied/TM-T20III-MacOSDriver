@@ -91,7 +91,8 @@ struct TMError: LocalizedError {
 
 /// Opens a link for each operation and closes it right after, so the USB
 /// interface is never held while CUPS wants to print.
-final class PrinterConnection {
+/// Immutable (only `transport`), and every link lives inside one call: safe to hand to the I/O queue.
+final class PrinterConnection: @unchecked Sendable {
     let transport: Transport
     init(_ t: Transport) { transport = t }
 

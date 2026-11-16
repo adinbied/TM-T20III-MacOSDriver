@@ -23,7 +23,7 @@ struct TMUtilityApp: App {
             ContentView()
                 .environmentObject(model)
                 .environmentObject(queue)
-                .frame(minWidth: 900, minHeight: 600)
+                .frame(minWidth: 940, minHeight: 640)
                 .onAppear { NSApplication.shared.activate(ignoringOtherApps: true) }
         }
         .commands {
@@ -74,6 +74,54 @@ enum Page: String, Hashable, CaseIterable {
     case interface = "Communication I/F"
     case operationCheck = "Operation Check"
     case backup = "Backup/Restore"
+
+    var icon: String {
+        switch self {
+        case .currentSettings: return "list.bullet.rectangle.fill"
+        case .logos: return "photo.fill"
+        case .paperReduction: return "arrow.down.right.and.arrow.up.left"
+        case .autoCut: return "scissors"
+        case .printingControl: return "slider.horizontal.3"
+        case .font: return "textformat"
+        case .buzzer: return "speaker.wave.2.fill"
+        case .interface: return "cable.connector"
+        case .operationCheck: return "checkmark.seal.fill"
+        case .backup: return "externaldrive.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .currentSettings: return .blue
+        case .logos: return .purple
+        case .paperReduction: return .teal
+        case .autoCut: return .orange
+        case .printingControl: return .indigo
+        case .font: return .pink
+        case .buzzer: return .red
+        case .interface: return .green
+        case .operationCheck: return .mint
+        case .backup: return .brown
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .currentSettings: return "Printer information and the values stored in the printer."
+        case .logos: return "Logos stored in the printer's memory."
+        case .paperReduction: return "Save paper by shrinking blank space and line spacing."
+        case .autoCut: return "Cut the paper automatically when the cover closes."
+        case .printingControl: return "Print density, speed and paper handling."
+        case .font: return "Default font and code page."
+        case .buzzer: return "Optional buzzer events."
+        case .interface: return "How the printer is connected."
+        case .operationCheck: return "Test printing, the cash drawer and the buzzer."
+        case .backup: return "Save the printer settings to a file, or load them back."
+        }
+    }
+
+    /// Pages built around a Table fill the window instead of scrolling.
+    var usesTable: Bool { self == .currentSettings || self == .printingControl }
 }
 
 struct ContentView: View {
@@ -85,81 +133,96 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $page) {
-                Section("Main") {
-                    item(.currentSettings, "list.bullet.rectangle")
-                    DisclosureGroup("Basic Settings") {
-                        item(.logos, "photo")
-                        item(.paperReduction, "arrow.down.right.and.arrow.up.left")
-                        item(.autoCut, "scissors")
-                        item(.printingControl, "slider.horizontal.3")
-                    }
-                    DisclosureGroup("Detailed Settings") {
-                        item(.font, "textformat")
-                        item(.buzzer, "speaker.wave.2")
-                        item(.interface, "cable.connector")
-                    }
+                Section("Main") { row(.currentSettings) }
+                Section("Basic Settings") {
+                    row(.logos); row(.paperReduction); row(.autoCut); row(.printingControl)
                 }
-                item(.operationCheck, "checkmark.circle")
-                item(.backup, "externaldrive")
+                Section("Detailed Settings") { row(.font); row(.buzzer); row(.interface) }
+                Section("Tools") { row(.operationCheck); row(.backup) }
             }
-            .navigationSplitViewColumnWidth(220)
+            .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
+            .background(Theme.surface)
+            .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         } detail: {
+            let current = page ?? .currentSettings
             VStack(spacing: 0) {
                 StatusHeader()
                 Divider()
                 Group {
-                    switch page ?? .currentSettings {
-                    case .currentSettings: CurrentSettingsPage()
-                    case .logos: NotTracedPage(page: .logos, controls: ["Select", "Edit", "Clear", "Test Print"],
-                                               note: "Uploading NV logos (GS ( L) is not traced yet.")
-                    case .paperReduction: PaperReductionPage(set: { confirmApply = true })
-                    case .autoCut: AutoCutPage()
-                    case .printingControl: PrintingControlPage(set: { confirmApply = true })
-                    case .font: FontPage(set: { confirmApply = true })
-                    case .buzzer: BuzzerPage()
-                    case .interface: InterfacePage()
-                    case .operationCheck: OperationCheckPage()
-                    case .backup: BackupRestorePage()
+                    if current.usesTable {
+                        pageBody(current).padding(20)
+                    } else {
+                        ScrollView { pageBody(current).padding(20) }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 Divider()
                 footer
             }
+            .background(Theme.window)
         }
         .toolbar {
             ToolbarItemGroup {
-                Toggle("Network", isOn: $m.useTCP).toggleStyle(.switch)
+                Toggle(isOn: $m.useTCP) { Label("Network", systemImage: "network") }
+                    .toggleStyle(.switch)
                 if m.useTCP { TextField("IP[:port]", text: $m.host).frame(width: 150) }
-                Button { m.refreshAll() } label: { Label("Read", systemImage: "arrow.down.circle") }
+                Button { m.refreshAll() } label: { Label("Read", systemImage: "arrow.down.circle.fill") }
                     .disabled(m.busy)
+                    .help("Read all settings from the printer")
                 Button { openWindow(id: "prefs") } label: {
-                    Label("Printing Preferences", systemImage: "printer.dotmatrix")
+                    Label("Printing Preferences", systemImage: "printer.dotmatrix.fill")
                 }
+                .help("Printing Preferences")
             }
         }
+        .opaqueWindow()
         .sheet(isPresented: $confirmApply) { ApplySheet() }
         .onAppear { m.refreshAll() }
     }
 
-    private func item(_ p: Page, _ icon: String) -> some View {
-        Label(p.rawValue, systemImage: icon).tag(p)
+    @ViewBuilder private func pageBody(_ p: Page) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PageHeader(title: p.rawValue, subtitle: p.subtitle, icon: p.icon, color: p.color)
+            switch p {
+            case .currentSettings: CurrentSettingsPage()
+            case .logos: NotTracedPage(page: .logos, controls: ["Select", "Edit", "Clear", "Test Print"],
+                                       note: "Uploading NV logos (GS ( L) is not traced yet.")
+            case .paperReduction: PaperReductionPage(set: { confirmApply = true })
+            case .autoCut: AutoCutPage()
+            case .printingControl: PrintingControlPage(set: { confirmApply = true })
+            case .font: FontPage(set: { confirmApply = true })
+            case .buzzer: BuzzerPage()
+            case .interface: InterfacePage()
+            case .operationCheck: OperationCheckPage()
+            case .backup: BackupRestorePage()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: p.usesTable ? CGFloat.infinity : nil, alignment: .topLeading)
+    }
+
+    private func row(_ p: Page) -> some View {
+        TileLabel(title: p.rawValue, icon: p.icon, color: p.color).tag(p)
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 10) {
             if m.busy { ProgressView().controlSize(.small) }
             if let e = m.lastError {
-                Label(e, systemImage: "exclamationmark.triangle").foregroundStyle(.red)
+                Label(e, systemImage: "exclamationmark.triangle.fill").foregroundColor(.red)
             } else if let msg = m.message {
-                Text(msg).foregroundStyle(.secondary)
+                Label(msg, systemImage: "checkmark.circle.fill").foregroundColor(.secondary)
+                    .symbolRenderingMode(.multicolor)
             }
             Spacer()
             if !m.changes.isEmpty {
-                Text("\(m.changes.count) unsaved change(s)").foregroundStyle(.orange)
+                Chip(icon: "pencil", text: "\(m.changes.count) unsaved change(s)", color: .orange)
+                Button("Review…") { confirmApply = true }
             }
         }
-        .padding(8)
+        .lineLimit(1)
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(Theme.surface)
     }
 }
 
@@ -167,28 +230,36 @@ struct ContentView: View {
 struct StatusHeader: View {
     @EnvironmentObject var m: PrinterModel
 
-    private var statusText: String {
-        guard let s = m.status else { return "—" }
-        if s.unrecoverable != 0 { return "Fatal Error" }
-        if s.cutter_error != 0 { return "Auto cutter error" }
-        if s.cover_open != 0 { return "Cover is open" }
-        if s.paper_end != 0 { return "Out of paper" }
-        if s.auto_recoverable != 0 { return "Auto recoverable error" }
-        if s.near_end != 0 { return "Paper near-end" }
-        return s.online != 0 ? "Online" : "Offline"
+    private var status: (String, Color) {
+        guard let s = m.status else { return ("Not connected", .gray) }
+        if s.unrecoverable != 0 { return ("Fatal Error", .red) }
+        if s.cutter_error != 0 { return ("Auto cutter error", .red) }
+        if s.cover_open != 0 { return ("Cover is open", .orange) }
+        if s.paper_end != 0 { return ("Out of paper", .red) }
+        if s.auto_recoverable != 0 { return ("Auto recoverable error", .orange) }
+        if s.near_end != 0 { return ("Paper near-end", .yellow) }
+        return s.online != 0 ? ("Online", .green) : ("Offline", .orange)
     }
 
     var body: some View {
-        HStack(spacing: 24) {
-            LabeledContent("Printer Name:", value: m.info.model.isEmpty ? "TM-T20III" : m.info.model)
-            LabeledContent("Port:", value: m.useTCP ? "Ethernet \(m.host)" : "USB")
-            LabeledContent("Status:") {
-                Text(statusText).foregroundStyle(statusText == "Online" ? Color.green : Color.orange)
+        HStack(spacing: 14) {
+            IconTile(symbol: "printer.fill", color: .blue, size: 46)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(m.info.model.isEmpty ? "TM-T20III" : m.info.model).font(.title2.weight(.semibold))
+                HStack(spacing: 6) {
+                    Chip(icon: m.useTCP ? "network" : "cable.connector",
+                         text: m.useTCP ? "Ethernet \(m.host)" : "USB", color: .blue)
+                    if !m.info.serial.isEmpty { Chip(icon: "number", text: m.info.serial, color: .purple) }
+                    if !m.info.firmware.isEmpty { Chip(icon: "cpu", text: m.info.firmware, color: .orange) }
+                }
             }
             Spacer()
-            Button("Refresh") { m.refreshStatus() }.disabled(m.busy)
+            StatusPill(text: status.0, color: status.1)
+            Button { m.refreshStatus() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                .disabled(m.busy)
         }
-        .padding(10)
+        .padding(.horizontal, 20).padding(.vertical, 14)
+        .background(Theme.surface)
     }
 }
 
@@ -199,36 +270,54 @@ struct SetButton: View {
     var body: some View {
         HStack {
             Spacer()
-            Button("Set", action: action).disabled(m.busy || m.changes.isEmpty).keyboardShortcut(.defaultAction)
+            Button(action: action) { Label("Set", systemImage: "square.and.arrow.down.fill").frame(minWidth: 60) }
+                .buttonStyle(.borderedProminent).controlSize(.large)
+                .disabled(m.busy || m.changes.isEmpty).keyboardShortcut(.defaultAction)
         }
     }
 }
 
 // MARK: - pages
 
+/// One "Printer Information" value as a small card.
+struct InfoTile: View {
+    let title: String, value: String, icon: String, color: Color
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                IconTile(symbol: icon, color: color, size: 20)
+                Text(title).font(.caption).foregroundColor(.secondary)
+            }
+            Text(value.isEmpty ? "—" : value).font(.headline).lineLimit(1).truncationMode(.middle)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(padding: 12)
+    }
+}
+
 /// TMUPRNSTG: Printer Information + Current Settings (Menu | Item | Value).
 struct CurrentSettingsPage: View {
     @EnvironmentObject var m: PrinterModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Printer Information") {
-                Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 4) {
-                    GridRow { Text("Printer Name"); Text(m.info.model) }
-                    GridRow { Text("Fonts Provided"); Text(m.info.fonts) }
-                    GridRow { Text("Serial No"); Text(m.info.serial) }
-                    GridRow { Text("Firmware Version"); Text(m.info.firmware) }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                InfoTile(title: "Printer Name", value: m.info.model, icon: "printer.fill", color: .blue)
+                InfoTile(title: "Serial No", value: m.info.serial, icon: "number", color: .purple)
+                InfoTile(title: "Firmware Version", value: m.info.firmware, icon: "cpu", color: .orange)
+                InfoTile(title: "Fonts Provided", value: m.info.fonts, icon: "textformat", color: .pink)
+            }
+            Card("Current Settings", icon: "list.bullet.rectangle.fill", color: .blue) {
+                Table(m.items) {
+                    TableColumn("Menu") { Text($0.group).foregroundColor(.secondary) }.width(140)
+                    TableColumn("Item") { Text($0.title.trimmingCharacters(in: .whitespaces)) }
+                    TableColumn("Value") { Text($0.label(for: $0.current)).fontWeight(.medium) }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading).padding(4)
+                .frame(minHeight: 220, maxHeight: .infinity)
             }
-            Text("Current Settings")
-            Table(m.items) {
-                TableColumn("Menu") { Text($0.group) }.width(130)
-                TableColumn("Item") { Text($0.title.trimmingCharacters(in: .whitespaces)) }
-                TableColumn("Value") { Text($0.label(for: $0.current)) }
-            }
+            .frame(maxHeight: .infinity)
         }
-        .padding()
     }
 }
 
@@ -256,11 +345,12 @@ struct SettingPicker: View {
                 .frame(width: width)
             }
             if !item.verified {
-                Text("unverified").font(.caption2).padding(.horizontal, 4)
-                    .background(Color.orange.opacity(0.2), in: Capsule())
+                Text("unverified").font(.caption2.weight(.medium)).foregroundColor(.orange)
+                    .padding(.horizontal, 6).padding(.vertical, 1)
+                    .background(Capsule().fill(Color.orange.opacity(0.15)))
                     .help("Mapping inferred from the Windows utility; read it back after writing.")
             }
-            if item.isChanged { Image(systemName: "pencil.circle.fill").foregroundStyle(.blue) }
+            if item.isChanged { Image(systemName: "pencil.circle.fill").foregroundColor(.blue) }
         }
     }
 }
@@ -271,39 +361,44 @@ struct PaperReductionPage: View {
     let set: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-                ForEach(m.items.filter { $0.group == "Paper Reduction" }) { item in
-                    GridRow {
-                        Text(item.title + ":")
-                        SettingPicker(item: item, width: 260)
+        VStack(alignment: .leading, spacing: 16) {
+            Card("Settings", icon: "slider.horizontal.3", color: .teal) {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+                    ForEach(m.items.filter { $0.group == "Paper Reduction" }) { item in
+                        GridRow {
+                            Text(item.title + ":")
+                            SettingPicker(item: item, width: 260)
+                        }
                     }
                 }
             }
-            HStack(spacing: 40) {
-                ReductionPreview(title: "Normal:", reduced: false)
-                ReductionPreview(title: "Paper Reduction:", reduced: true)
+            Card("Preview", icon: "eye.fill", color: .teal) {
+                HStack(spacing: 40) {
+                    ReductionPreview(title: "Normal", reduced: false)
+                    ReductionPreview(title: "Paper Reduction", reduced: true)
+                }
             }
-            Spacer()
             SetButton(action: set)
         }
-        .padding()
     }
 }
 
 struct ReductionPreview: View {
     let title: String, reduced: Bool
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundColor(.secondary)
             VStack(spacing: reduced ? 2 : 6) {
                 Rectangle().fill(.clear).frame(height: reduced ? 4 : 14)
-                ForEach(0..<4) { _ in Capsule().fill(.secondary).frame(width: 90, height: reduced ? 4 : 5) }
+                ForEach(0..<4) { _ in
+                    Capsule().fill(reduced ? Color.teal : Color.gray).frame(width: 90, height: reduced ? 4 : 5)
+                }
                 Rectangle().fill(.clear).frame(height: reduced ? 4 : 14)
             }
             .frame(width: 120)
-            .background(Color(nsColor: .textBackgroundColor))
-            .border(.separator)
+            .background(RoundedRectangle(cornerRadius: 3).fill(Color(nsColor: .textBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.border))
+            .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
         }
     }
 }
@@ -314,16 +409,21 @@ struct PrintingControlPage: View {
     let set: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Table(m.items.filter { $0.group == "Printing Control" }) {
-                TableColumn("Function") { Text($0.title) }.width(min: 260, ideal: 330)
-                TableColumn("Setting") { SettingPicker(item: $0, width: 240) }.width(min: 260, ideal: 340)
+        VStack(alignment: .leading, spacing: 12) {
+            Card("Functions", icon: "slider.horizontal.3", color: .indigo) {
+                Table(m.items.filter { $0.group == "Printing Control" }) {
+                    TableColumn("Function") { Text($0.title) }.width(min: 260, ideal: 330)
+                    TableColumn("Setting") { SettingPicker(item: $0, width: 240) }.width(min: 260, ideal: 340)
+                }
+                .frame(minHeight: 200, maxHeight: .infinity)
             }
-            Text("Not available on macOS yet: Multi-language font (20010), Receive buffer 128 KB.")
-                .font(.caption).foregroundStyle(.secondary)
-            SetButton(action: set)
+            .frame(maxHeight: .infinity)
+            HStack(alignment: .bottom) {
+                Text("Not available on macOS yet: Multi-language font (20010), Receive buffer 128 KB.")
+                    .font(.caption).foregroundColor(.secondary)
+                SetButton(action: set)
+            }
         }
-        .padding()
     }
 }
 
@@ -333,19 +433,21 @@ struct FontPage: View {
     let set: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-                ForEach(m.items.filter { $0.group == "Font" }) { item in
-                    GridRow { Text(item.title + ":"); SettingPicker(item: item, width: 280) }
+        VStack(alignment: .leading, spacing: 16) {
+            Card("Font", icon: "textformat", color: .pink) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+                        ForEach(m.items.filter { $0.group == "Font" }) { item in
+                            GridRow { Text(item.title + ":"); SettingPicker(item: item, width: 280) }
+                        }
+                    }
+                    Button { m.testPrint() } label: { Label("Test Print", systemImage: "printer.fill") }
+                        .disabled(m.busy)
                 }
             }
-            Button("Test Print") { m.testPrint() }.disabled(m.busy)
-            Text("If you are using UPOS, you need to set the font on the UPOS.")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
+            InfoBanner(text: "If you are using UPOS, you need to set the font on the UPOS.")
             SetButton(action: set)
         }
-        .padding()
     }
 }
 
@@ -357,40 +459,39 @@ struct NotTracedPage: View {
     let note: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(note, systemImage: "info.circle").foregroundStyle(.secondary)
-            HStack { ForEach(controls, id: \.self) { Button($0) {}.disabled(true) } }
-            Spacer()
+        VStack(alignment: .leading, spacing: 16) {
+            InfoBanner(text: note, icon: "exclamationmark.triangle.fill", color: .orange)
+            Card(page.rawValue, icon: page.icon, color: page.color) {
+                HStack { ForEach(controls, id: \.self) { Button($0) {}.disabled(true) } }
+            }
         }
-        .padding()
     }
 }
 
 /// TMUATCUTSTG ([TMUATCUTSTG_DLL_CAP]).
 struct AutoCutPage: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("The automatic cut / top-bottom logo settings are not traced yet; shown for reference. "
-                  + "\"Method for canceling auto cutter error\" is under Printing Control.",
-                  systemImage: "info.circle").foregroundStyle(.secondary)
-            Picker("", selection: .constant(0)) {
-                Text("Not use this function").tag(0)
-                Text("Cut paper when the cover is closed.").tag(1)
-                Text("Print logo when paper is cut.").tag(2)
+        VStack(alignment: .leading, spacing: 16) {
+            InfoBanner(text: "The automatic cut / top-bottom logo settings are not traced yet; shown for reference. "
+                       + "\"Method for canceling auto cutter error\" is under Printing Control.",
+                       icon: "exclamationmark.triangle.fill", color: .orange)
+            Card("Function", icon: "scissors", color: .orange) {
+                Picker("", selection: .constant(0)) {
+                    Text("Not use this function").tag(0)
+                    Text("Cut paper when the cover is closed.").tag(1)
+                    Text("Print logo when paper is cut.").tag(2)
+                }
+                .pickerStyle(.radioGroup).labelsHidden().disabled(true)
             }
-            .pickerStyle(.radioGroup).labelsHidden().disabled(true)
-            GroupBox("Condition") {
+            Card("Condition", icon: "list.bullet", color: .orange) {
                 VStack(alignment: .leading) {
                     Toggle("When paper is cut by command", isOn: .constant(false))
                     Toggle("When cover is closed", isOn: .constant(false))
                     Toggle("When printer is powered on", isOn: .constant(false))
                 }
                 .disabled(true)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer()
         }
-        .padding()
     }
 }
 
@@ -401,28 +502,30 @@ struct BuzzerPage: View {
                           "When specified pulse 2 (5 pin) occurs:", "When printer is powered on:"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Optional buzzer event settings are not traced yet; shown for reference. "
-                  + "Use Operation Check > Test Buzzer to sound it.", systemImage: "info.circle")
-                .foregroundStyle(.secondary)
-            Picker("", selection: .constant(0)) {
-                Text("Disabled").tag(0)
-                Text("Optional Buzzer").tag(1)
+        VStack(alignment: .leading, spacing: 16) {
+            InfoBanner(text: "Optional buzzer event settings are not traced yet; shown for reference. "
+                       + "Use Operation Check > Test Buzzer to sound it.",
+                       icon: "exclamationmark.triangle.fill", color: .orange)
+            Card("Buzzer", icon: "speaker.wave.2.fill", color: .red) {
+                Picker("", selection: .constant(0)) {
+                    Text("Disabled").tag(0)
+                    Text("Optional Buzzer").tag(1)
+                }
+                .pickerStyle(.radioGroup).labelsHidden().disabled(true)
             }
-            .pickerStyle(.radioGroup).labelsHidden().disabled(true)
-            Grid(alignment: .leading) {
-                ForEach(events, id: \.self) { e in
-                    GridRow {
-                        Text(e)
-                        Picker("", selection: .constant(0)) { Text("Off").tag(0) }.labelsHidden().frame(width: 120)
-                        Picker("", selection: .constant(0)) { Text("Default").tag(0) }.labelsHidden().frame(width: 120)
+            Card("Events", icon: "bell.fill", color: .red) {
+                Grid(alignment: .leading) {
+                    ForEach(events, id: \.self) { e in
+                        GridRow {
+                            Text(e)
+                            Picker("", selection: .constant(0)) { Text("Off").tag(0) }.labelsHidden().frame(width: 120)
+                            Picker("", selection: .constant(0)) { Text("Default").tag(0) }.labelsHidden().frame(width: 120)
+                        }
                     }
                 }
+                .disabled(true)
             }
-            .disabled(true)
-            Spacer()
         }
-        .padding()
     }
 }
 
@@ -431,17 +534,16 @@ struct InterfacePage: View {
     @EnvironmentObject var m: PrinterModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            LabeledContent("Interface type", value: m.useTCP ? "Ethernet" : "USB")
-            GroupBox("Information") {
-                Grid(alignment: .leading, horizontalSpacing: 20) {
-                    GridRow { Text("USB Device:"); Text(m.info.model) }
-                    GridRow { Text("Firmware:"); Text(m.info.firmware) }
+        VStack(alignment: .leading, spacing: 16) {
+            Card("Information", icon: "info.circle.fill", color: .green) {
+                Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
+                    GridRow { Text("Interface type:").foregroundColor(.secondary); Text(m.useTCP ? "Ethernet" : "USB") }
+                    GridRow { Text("USB Device:").foregroundColor(.secondary); Text(m.info.model) }
+                    GridRow { Text("Firmware:").foregroundColor(.secondary); Text(m.info.firmware) }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            GroupBox("USB Class Setting") {
-                VStack(alignment: .leading) {
+            Card("USB Class Setting", icon: "cable.connector", color: .green) {
+                VStack(alignment: .leading, spacing: 8) {
                     Picker("", selection: .constant(0)) {
                         Text("Printer Class").tag(0)
                         Text("Vender Class").tag(1)
@@ -449,13 +551,10 @@ struct InterfacePage: View {
                     .pickerStyle(.radioGroup).labelsHidden().disabled(true)
                     Text("macOS needs Printer Class (the default). Changing the class is not traced; "
                          + "use Epson's utility on Windows if the printer was switched to Vendor Class.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundColor(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer()
         }
-        .padding()
     }
 }
 
@@ -470,7 +569,7 @@ struct OperationCheckPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            GroupBox("Print Test") {
+            Card("Print Test", icon: "printer.fill", color: .blue) {
                 HStack {
                     Picker("", selection: $printTest) {
                         Text("Test Printing").tag(1)
@@ -479,16 +578,17 @@ struct OperationCheckPage: View {
                     }
                     .labelsHidden().frame(width: 220)
                     Spacer()
-                    Button("Execute") {
+                    Button {
                         switch printTest {
                         case 3: m.testPrint(text: "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 !\"#$%&'()*+,-./\n")
                         default: m.testPrint()
                         }
-                    }
+                    } label: { Label("Execute", systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
                     .disabled(m.busy || printTest == 2)
                 }
             }
-            GroupBox("Device Test") {
+            Card("Device Test", icon: "wrench.and.screwdriver.fill", color: .mint) {
                 HStack {
                     Picker("", selection: $deviceTest) {
                         Text("Communication Test").tag(1)
@@ -503,22 +603,24 @@ struct OperationCheckPage: View {
                         .labelsHidden().frame(width: 120)
                     }
                     Spacer()
-                    Button("Execute") {
+                    Button {
                         switch deviceTest {
                         case 1: m.refreshStatus(); m.message = "Communication test completed successfully."
                         case 2: askDrawer = true
                         default: m.buzz(Int32(pattern))
                         }
-                    }
+                    } label: { Label("Execute", systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
                     .disabled(m.busy)
                 }
             }
-            Spacer()
         }
-        .padding()
         .sheet(isPresented: $askDrawer) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Open Drawer").font(.headline)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    IconTile(symbol: "tray.fill", color: .mint, size: 30)
+                    Text("Open Drawer").font(.headline)
+                }
                 Text("Select the drawer to open.")
                 Picker("Connector Pin Number", selection: $drawerPin) {
                     Text("Drawer 1 (2 pin)").tag(2)
@@ -528,10 +630,11 @@ struct OperationCheckPage: View {
                 HStack {
                     Spacer()
                     Button("Cancel") { askDrawer = false }.keyboardShortcut(.cancelAction)
-                    Button("OK") { m.drawer(Int32(drawerPin)); askDrawer = false }.keyboardShortcut(.defaultAction)
+                    Button("OK") { m.drawer(Int32(drawerPin)); askDrawer = false }
+                        .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
                 }
             }
-            .padding().frame(width: 320)
+            .padding(20).frame(width: 340)
         }
     }
 }
@@ -545,36 +648,39 @@ struct BackupRestorePage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            GroupBox("Backup") {
+            Card("Backup", icon: "tray.and.arrow.down.fill", color: .blue) {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Printer settings", isOn: .constant(true)).disabled(true)
                     Toggle("Stored logo data", isOn: .constant(false)).disabled(true)
                     HStack {
                         Text("File name:")
                         TextField("", text: $backupPath)
-                        Button("Browse") { browseSave() }
+                        Button("Browse…") { browseSave() }
                     }
-                    HStack { Spacer(); Button("Backup") { confirm = "backup" }.disabled(backupPath.isEmpty) }
+                    HStack {
+                        Spacer()
+                        Button { confirm = "backup" } label: { Label("Backup", systemImage: "tray.and.arrow.down.fill") }
+                            .buttonStyle(.borderedProminent).disabled(backupPath.isEmpty)
+                    }
                 }
-                .padding(4)
             }
-            GroupBox("Restore") {
+            Card("Restore", icon: "tray.and.arrow.up.fill", color: .orange) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("File name:")
                         TextField("", text: $restorePath)
-                        Button("Browse") { browseOpen() }
+                        Button("Browse…") { browseOpen() }
                     }
-                    HStack { Spacer(); Button("Restore") { confirm = "restore" }.disabled(restorePath.isEmpty) }
+                    HStack {
+                        Spacer()
+                        Button { confirm = "restore" } label: { Label("Restore", systemImage: "tray.and.arrow.up.fill") }
+                            .buttonStyle(.borderedProminent).tint(.orange).disabled(restorePath.isEmpty)
+                    }
                 }
-                .padding(4)
             }
-            Text("Same key=value format as the tmutil command-line tool. Restoring loads the values; "
-                 + "review them and press Set on the Printing Control page.")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
+            InfoBanner(text: "Same key=value format as the tmutil command-line tool. Restoring loads the values; "
+                       + "review them and press Set on the Printing Control page.")
         }
-        .padding()
         .alert(confirm == "backup" ? "This will backup your printer settings. Continue?"
                                    : "This will restore your printer settings. Continue?",
                isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
@@ -615,25 +721,29 @@ struct ApplySheet: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Do you want to save your changes to the settings to the printer?").font(.headline)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                IconTile(symbol: "square.and.arrow.down.fill", color: .blue, size: 34)
+                Text("Do you want to save your changes to the settings to the printer?").font(.headline)
+            }
             Table(m.changes) {
                 TableColumn("Setting") { Text($0.title.trimmingCharacters(in: .whitespaces)) }
-                TableColumn("Printer") { Text($0.label(for: $0.current)) }
-                TableColumn("New") { Text($0.label(for: $0.pending)) }
-                TableColumn("") { Text($0.verified ? "" : "unverified") }
+                TableColumn("Printer") { Text($0.label(for: $0.current)).foregroundColor(.secondary) }
+                TableColumn("New") { Text($0.label(for: $0.pending)).fontWeight(.semibold).foregroundColor(.blue) }
+                TableColumn("") { Text($0.verified ? "" : "unverified").foregroundColor(.orange) }
             }
             .frame(minHeight: 200)
-            Text("The printer resets after writing. Don't print until it is ready again.")
-                .font(.caption).foregroundStyle(.secondary)
+            InfoBanner(text: "The printer resets after writing. Don't print until it is ready again.",
+                       icon: "exclamationmark.triangle.fill", color: .orange)
             HStack {
                 Button("Discard changes", role: .destructive) { m.discard(); dismiss() }
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Set") { m.apply(); dismiss() }.keyboardShortcut(.defaultAction)
+                Button("Set") { m.apply(); dismiss() }
+                    .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
             }
         }
-        .padding()
-        .frame(width: 640)
+        .padding(20)
+        .frame(width: 660)
     }
 }

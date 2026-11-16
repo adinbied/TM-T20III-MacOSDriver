@@ -28,6 +28,7 @@ const char *tm_strerror(int err)
     case TM_ERR_PROTO:   return "unexpected reply";
     case TM_ERR_ARG:     return "invalid argument";
     case TM_ERR_NODEV:   return "printer not found";
+    case TM_ERR_BUSY:    return "printer is in use (printing?) - try again when the job is done";
     default:             return "error";
     }
 }

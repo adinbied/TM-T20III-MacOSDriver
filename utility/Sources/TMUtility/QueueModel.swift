@@ -95,9 +95,8 @@ final class QueueModel: ObservableObject {
         Task.detached {
             let names = (try? Shell.run("/usr/bin/lpstat", ["-e"]))?.stdout
                 .split(whereSeparator: \.isNewline).map(String.init) ?? []
-            var ours: [String] = []
-            for n in names {
-                if let ppd = try? Self.fetchPPD(n), ppd.contains("rastertotmt20") { ours.append(n) }
+            let ours = names.filter { n in
+                (try? Self.fetchPPD(n))?.contains("rastertotmt20") ?? false
             }
             await MainActor.run {
                 self.queues = ours

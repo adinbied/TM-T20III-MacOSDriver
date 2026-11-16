@@ -39,7 +39,8 @@ enum {
     TM_ERR_TIMEOUT = -2,
     TM_ERR_PROTO = -3,
     TM_ERR_ARG = -4,
-    TM_ERR_NODEV = -5
+    TM_ERR_NODEV = -5,
+    TM_ERR_BUSY = -6
 };
 
 int  tm_link_fd(tm_link *l, int rfd, int wfd);              /* POSIX fds   */

@@ -13,8 +13,8 @@
 #   --release      upload the pkg to a GitHub release v<VERSION> (needs `gh` and a pushed repo)
 #
 # Environment overrides:
-#   DEV_ID_APP        "Developer ID Application: Name (TEAMID)"   (auto-detected)
-#   DEV_ID_INSTALLER  "Developer ID Installer: Name (TEAMID)"     (auto-detected)
+#   DEV_ID_APP        pick among several Developer ID Application certs (name, team ID or SHA-1)
+#   DEV_ID_INSTALLER  same for the Developer ID Installer cert     (both auto-detected)
 #   NOTARY_PROFILE    notarytool keychain profile (default tmt20iii-notary)
 #   ID_PREFIX         bundle / package identifier prefix (default local.tmt20iii)
 set -euo pipefail
@@ -41,21 +41,57 @@ NOTARY_PROFILE="${NOTARY_PROFILE:-tmt20iii-notary}"
 OUT="dist/TM-T20III-Driver-$VERSION.pkg"
 
 step() { printf '\n==> %s\n' "$*"; }
-identity() { security find-identity -v 2>/dev/null | awk -F'"' -v k="$1" 'index($2, k) == 1 { print $2; exit }'; }
+# identity KIND [FILTER] -> "SHA1<TAB>full name" of the first valid identity whose name starts
+# with KIND ("Developer ID Application" / "Developer ID Installer") and contains FILTER
+# (a name, team ID or SHA-1). Only Developer ID certificates can sign software distributed
+# outside the App Store; "Apple Distribution"/"Apple Development" ones are never picked.
+identity() {
+    security find-identity -v 2>/dev/null | awk -F'"' -v k="$1" -v f="${2:-}" '
+        index($2, k) == 1 && (f == "" || index($2, f) || index(toupper($1), toupper(f))) {
+            split($1, a, " "); print a[2] "\t" $2; exit }'
+}
+no_identity() {
+    echo "error: no valid '$1' certificate${2:+ matching '$2'} in the keychain." >&2
+    echo "Identities found (only 'Developer ID ...' ones work for a downloadable pkg):" >&2
+    security find-identity -v >&2 || true
+    echo "Create it in Xcode > Settings > Accounts > Manage Certificates > + > $1." >&2
+    exit 1
+}
 
 if [ $SIGN = 1 ]; then
-    DEV_ID_APP="${DEV_ID_APP:-$(identity "Developer ID Application")}"
-    DEV_ID_INSTALLER="${DEV_ID_INSTALLER:-$(identity "Developer ID Installer")}"
-    [ -n "$DEV_ID_APP" ] || { echo "No 'Developer ID Application' certificate in the keychain (or set DEV_ID_APP)." >&2; exit 1; }
-    [ -n "$DEV_ID_INSTALLER" ] || { echo "No 'Developer ID Installer' certificate in the keychain (or set DEV_ID_INSTALLER)." >&2; exit 1; }
-    echo "App signing:       $DEV_ID_APP"
+    app=$(identity "Developer ID Application" "${DEV_ID_APP:-}")
+    [ -n "$app" ] || no_identity "Developer ID Application" "${DEV_ID_APP:-}"
+    inst=$(identity "Developer ID Installer" "${DEV_ID_INSTALLER:-}")
+    [ -n "$inst" ] || no_identity "Developer ID Installer" "${DEV_ID_INSTALLER:-}"
+    TAB=$(printf '\t')
+    DEV_ID_APP=${app%%"$TAB"*}                 # sign by SHA-1: no ambiguity between certificates
+    DEV_ID_INSTALLER=${inst#*"$TAB"}
+    echo "App signing:       ${app#*"$TAB"} ($DEV_ID_APP)"
     echo "Installer signing: $DEV_ID_INSTALLER"
+
+    # "unable to build chain to self-signed root" / errSecInternalComponent = Apple's
+    # intermediate certificate is missing (or the keychain is locked, e.g. over SSH).
+    if ! security find-certificate -c "Developer ID Certification Authority" >/dev/null 2>&1; then
+        echo "error: Apple's 'Developer ID Certification Authority' intermediate certificate is not installed." >&2
+        echo "Download and double-click both, then re-run:" >&2
+        echo "  https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" >&2
+        echo "  https://www.apple.com/certificateauthority/DeveloperIDCA.cer" >&2
+        exit 1
+    fi
+    probe=$(mktemp -t tmt20sign)
+    cp /usr/bin/true "$probe"
+    if ! codesign --force --options runtime --timestamp --sign "$DEV_ID_APP" "$probe" 2>"$probe.err"; then
+        cat "$probe.err" >&2
+        echo "error: test signature failed. If the keychain is locked (SSH session), run:" >&2
+        echo "  security unlock-keychain ~/Library/Keychains/login.keychain-db" >&2
+        rm -f "$probe" "$probe.err"
+        exit 1
+    fi
+    rm -f "$probe" "$probe.err"
 else
     DEV_ID_APP="-"
     echo "Unsigned build (ad-hoc binaries, unsigned pkg) - for local testing only."
 fi
-grep -q "^\*FileVersion: \"$VERSION\"" ppd/EpsonTMT20III.ppd ||
-    echo "warning: ppd/EpsonTMT20III.ppd *FileVersion does not match VERSION ($VERSION)" >&2
 
 step "Building driver + tools (universal)"
 make clean >/dev/null
@@ -81,7 +117,9 @@ install -d "$R/Library/Printers/Epson/TMT20III" "$R/Library/Printers/PPDs/Conten
 install -m 755 build/rastertotmt20 "$R/Library/Printers/Epson/TMT20III/rastertotmt20"
 install -m 755 scripts/add-printer.sh "$R/Library/Printers/Epson/TMT20III/add-printer.sh"
 install -m 755 scripts/uninstall.sh "$R/Library/Printers/Epson/TMT20III/uninstall.sh"
-install -m 644 ppd/EpsonTMT20III.ppd "$R/Library/Printers/PPDs/Contents/Resources/EpsonTMT20III.ppd"
+sed "s/^\*FileVersion: .*/*FileVersion: \"$VERSION\"/" ppd/EpsonTMT20III.ppd \
+    > "$R/Library/Printers/PPDs/Contents/Resources/EpsonTMT20III.ppd"   # PPD *FileVersion = VERSION
+chmod 644 "$R/Library/Printers/PPDs/Contents/Resources/EpsonTMT20III.ppd"
 install -m 755 utility/build/tmutil utility/build/tmqueue "$R/usr/local/bin/"
 ditto "utility/TM-T20III Utility.app" "$R/Applications/TM-T20III Utility.app"
 
